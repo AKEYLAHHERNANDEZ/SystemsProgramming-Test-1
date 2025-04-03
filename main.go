@@ -84,46 +84,62 @@ func GrabberHelper(conn net.Conn, bufferSize int, timeout time.Duration) (string
 
 
 func main() {
-	Flags := flag.String("Targets","")
+	targets := flag.String("Targets","")
 	start := flag.Int("Start-port", 1, "Port Number")
 	end := flag.Int("End-port", 512, "Port Number")
 	workers := flag.Int("Start-point", 5, "Port Number")
 	checkers := flag.Bool("Boolean check", false, "Banner grabbing")
+	timeout := flag.Int("timeout", 5, "Timeout ")
+	jsoutput := flag.Bool("json", false, "Enable JSoutput")
 	flag.Parse()
 	
+	if *targets == "" {
+	fmt.Println("No targets specified")
+	return
+	}
+
 	var wg sync.WaitGroup
 	tasks := make(chan string, 100)
-
-    //target := "scanme.nmap.org"
 
 	dialer := net.Dialer {
 		Timeout: time.Duration(*timeout) *time.Second,
 	}
 	check = *checkers
 
-	desc := make(chan string, *workers)
-	temp :=make(chan Definitions, *workers)
+	results := make(chan Definitions, *workers) 
+	targetslist := strings.Split(*targets, ",")
 
     for i := 0; i <= *workers; i++ {
 		wg.Add(1)
-		go worker(&wg, temp, dialer)
+		go worker(&wg, tasks, results, dialer)
 	}
 
     go func(){
-		for _, RES := range desc {
-			for val := *start; val <= *end; val++{
-				tasks <- net.JoinHostPort(RES,strconv.Itoa(val))
+		for _, val := range targetslist {
+			for port := *start; port <= *end; port++{
+				tasks <- net.JoinHostPort(val,strconv.Itoa(port))
 			}
 		}
 		close(tasks)
 	}()
 
-	
-	for p := 1; p <= ports; p++ {
-		port := strconv.Itoa(p)
-        address := net.JoinHostPort(target, port)
-		tasks <- address
+	go func(){
+		wg.Wait()
+		close(results)
+	}()
+var output []Definitions
+for prints := range results {
+		if prints.Check {
+			if check {
+				fmt.Printf("%s:%d - IS OPEN (%s)\n", prints.Host, prints.Port, prints.Service)
+			} else {
+				fmt.Printf("%s:%d - IS OPEN\n", prints.Host, prints.Port)
+			}
+		}
 	}
-	close(tasks)
-	wg.Wait()
+}
+
+if *jsoutput{
+	jsonData,_:= json.MarshalIndent(output, "","")
+	fmt.Println(string(jsonData))
 }
