@@ -34,18 +34,43 @@ func worker(wg *sync.WaitGroup, tasks chan string, result chan Definitions, dial
 		if err == nil {
 			conn.Close()
 			
-			fmt.Printf("Connection to %s was successful\n", addr)
-			banner := make([]byte,102)
-		}
-		backoff := time.Duration(1<<i) * time.Second
-		fmt.Printf("Attempt %d to %s failed. Waiting %v...\n", i+1,  addr, backoff)
-		time.Sleep(backoff)
-	    }
-		if !success {
-			fmt.Printf("Failed to connect to %s after %d attempts\n", addr, maxRetries)
-		}
-	}
-}
+			const(
+			buffersize = 1024
+			timeout = 2 * time.Second
+			)
+
+			if check {
+				banner,err := grabbanner (conn,buffersize,timeout)
+				if err != nil {
+					banner = ""
+				}
+				result <- Definitions{
+					Host: host,
+					Port: port,
+					Check: true,
+					Service: service,
+					Protocol: protocol,
+				}
+			}
+				else {
+					result <- Definitions {
+						Host: host,
+						Port: port,
+						Check: false,
+					}	
+			}
+	// 		fmt.Printf("Connection to %s was successful\n", addr)
+	// 		banner := make([]byte,102)
+	// 	}
+	// 	backoff := time.Duration(1<<i) * time.Second
+	// 	fmt.Printf("Attempt %d to %s failed. Waiting %v...\n", i+1,  addr, backoff)
+	// 	time.Sleep(backoff)
+	//     }
+	// 	if !success {
+	// 		fmt.Printf("Failed to connect to %s after %d attempts\n", addr, maxRetries)
+	// 	}
+	// }
+
 
 func main() {
 
