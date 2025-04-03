@@ -83,31 +83,37 @@ func GrabberHelper(conn net.Conn, bufferSize int, timeout time.Duration) (string
 			}
 
 
-// func main() {
+func main() {
+	Flags := flag.String("Targets","")
+	start := flag.Int("Start-port", 1, "Port Number")
+	end := flag.Int("End-port", 512, "Port Number")
+	workers := flag.Int("Start-point", 5, "Port Number")
+	checkers := flag.Bool("Boolean check", false, "Banner grabbing")
+	flag.Parse()
+	
+	var wg sync.WaitGroup
+	tasks := make(chan string, 100)
 
-// 	var wg sync.WaitGroup
-// 	tasks := make(chan string, 100)
+    //target := "scanme.nmap.org"
 
-//     target := "scanme.nmap.org"
+	dialer := net.Dialer {
+		Timeout: time.Duration(*timeout) *time.Second,
+	}
+	check = *checkers
+	val := 100
 
-// 	dialer := net.Dialer {
-// 		Timeout: 5 * time.Second,
-// 	}
-  
-// 	workers := 100
+    for i := 1; i <= workers; i++ {
+		wg.Add(1)
+		go worker(&wg, tasks, dialer)
+	}
 
-//     for i := 1; i <= workers; i++ {
-// 		wg.Add(1)
-// 		go worker(&wg, tasks, dialer)
-// 	}
+	ports := 512
 
-// 	ports := 512
-
-// 	for p := 1; p <= ports; p++ {
-// 		port := strconv.Itoa(p)
-//         address := net.JoinHostPort(target, port)
-// 		tasks <- address
-// 	}
-// 	close(tasks)
-// 	wg.Wait()
-// }
+	for p := 1; p <= ports; p++ {
+		port := strconv.Itoa(p)
+        address := net.JoinHostPort(target, port)
+		tasks <- address
+	}
+	close(tasks)
+	wg.Wait()
+}
