@@ -23,6 +23,13 @@ type Definitions struct {
 	Protocol string `json:"protocol,omitempty"`
 }
 
+var (
+	timeout time.Duration
+	check bool
+	service string
+	protocol string
+)
+
 func worker(wg *sync.WaitGroup, tasks chan string, result chan Definitions, dialer net.Dialer) {
 	defer wg.Done()
     for addr := range tasks {
@@ -59,17 +66,16 @@ func worker(wg *sync.WaitGroup, tasks chan string, result chan Definitions, dial
 						Check: false,
 					}	
 			}
-	// 		fmt.Printf("Connection to %s was successful\n", addr)
-	// 		banner := make([]byte,102)
-	// 	}
-	// 	backoff := time.Duration(1<<i) * time.Second
-	// 	fmt.Printf("Attempt %d to %s failed. Waiting %v...\n", i+1,  addr, backoff)
-	// 	time.Sleep(backoff)
-	//     }
-	// 	if !success {
-	// 		fmt.Printf("Failed to connect to %s after %d attempts\n", addr, maxRetries)
-	// 	}
-	// }
+
+			func GrabberHelper(conn net.Coon, buffersizee int, timeout time.Duration) (string, error) {
+			banner := make([byte,buffersize])
+			CONN.SetReadDeadline(time.Now().Add(timeout))
+			Vari, err :=conn.Read(bannerBuffer)
+			if err != nil {
+				return " ",err
+			}
+			return string(bannerBuffer[:vari],nil)
+			}
 
 
 func main() {
