@@ -1,16 +1,17 @@
-//Name:Akeylah Hernandez
-//Filename:main.go
-//Assignemnt: Test #1
+// Name:Akeylah Hernandez
+// Filename:main.go
+// Assignemnt: Test #1
 package main
 
 import (
-"encoding/json"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
+	"text/scanner"
 	"time"
 )
 
@@ -107,7 +108,26 @@ func GrabberHelper(conn net.Conn, bufferSize int, timeout time.Duration) (string
 	return string(banner[:Vari]), nil
 	}
 
-
+func Progress(progress chan int, counter int){
+	first := time.Now()
+	track := time.Now()
+	var temp int
+	for range progress {
+		temp++
+	 now := time.Now()
+	 if now.Sub(track) > 500 *time.Millisecond || temp == counter {
+		amount := float64(temp) / float64(counter) * 100
+		elapsed := time.Since(first)
+		last := time.Duration(float64(elapsed)/float64(temp)*float64(counter-temp)) * time.Nanosecond
+		fmt.Printf("\rProgress: %d/%d (%.1f%%) | Elapsed: %s | Remaining: %s",
+		temp, counter, amount, elapsed.Round(time.Second), last.Round(time.Second))
+		track = now
+		if temp == counter {
+			fmt.Println()
+		}
+	}
+}
+}
 			func main() {
 				targets := flag.String("Targets","","host")
 				start := flag.Int("Start-port", 1, "Port Number")
