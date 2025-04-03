@@ -100,15 +100,25 @@ func main() {
 		Timeout: time.Duration(*timeout) *time.Second,
 	}
 	check = *checkers
-	val := 100
 
-    for i := 1; i <= workers; i++ {
+	desc := make(chan string, *workers)
+	temp :=make(chan Definitions, *workers)
+
+    for i := 0; i <= *workers; i++ {
 		wg.Add(1)
-		go worker(&wg, tasks, dialer)
+		go worker(&wg, temp, dialer)
 	}
 
-	ports := 512
+    go func(){
+		for _, RES := range desc {
+			for val := *start; val <= *end; val++{
+				tasks <- net.JoinHostPort(RES,strconv.Itoa(val))
+			}
+		}
+		close(tasks)
+	}()
 
+	
 	for p := 1; p <= ports; p++ {
 		port := strconv.Itoa(p)
         address := net.JoinHostPort(target, port)
