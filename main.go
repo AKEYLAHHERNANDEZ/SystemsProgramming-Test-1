@@ -34,7 +34,7 @@ type DISPLAY struct{
 }
 
 func Printer(printit DISPLAY) {
-	fmt.Println("Targets: %v \n", printit.Ports)
+	fmt.Println("Targets: %v \n", printit.Targets)
 	if len(printit.Ports) > 0 {
 		fmt.Println("Ports: %v \n", printit.Ports)
 	}else {
@@ -47,52 +47,46 @@ func Printer(printit DISPLAY) {
 	fmt.Println("Duration: %s\n", printit.DurationT)	
 }
 
-func worker(wg *sync.WaitGroup, tasks chan string, result chan Definitions, dialer net.Dialer) {//fix
-	defer wg.Done()
-	for addr := range tasks {
-	division := strings.Split(addr, ":")
-	if len(division) != 2 {
-	continue
-	}
-	host, Variable := division[0], division[1]
-	port, err := strconv.Atoi(Variable)
-	if err != nil {
-	continue
-	}
-	conn, err := dialer.Dial("tcp", addr)
-	if err == nil {
-	continue
-	}
-	defer conn.Close()
-	}
-	if check {
-	banner, err := GrabberHelper(conn, 1024, 2*time.Second)
-	if err != nil {
-	banner = ""
-	}
-	result <- Definitions{
-	Host:     host,
-	Port:     port,
-	Check:    true,
-	Service:  banner,
-	Protocol: protocol,
-	}
-	} else {
-	result <- Definitions{
-	Host:  host,
-	Port:  port,
-	Check: true,
-		}
-	}
-} 
-} 
+func worker(wg *sync.WaitGroup, tasks chan string, result chan Definitions, dialer net.Dialer, check bool) {
+    defer wg.Done()
+    for addr := range tasks {
+        division := strings.Split(addr, ":")
+        if len(division) != 2 {
+            continue
+        }
+        host, portStr := division[0], division[1]
+        port, err := strconv.Atoi(portStr)
+        if err != nil {
+            continue
+        }
 
+        conn, err := dialer.Dial("tcp", addr)
+        if err != nil {
+            continue  // Skip if connection failed
+        }
+
+        resultDef := Definitions{
+            Host:  host,
+            Port:  port,
+            Check: true,
+        }
+
+        if check {
+            banner, err := GrabberHelper(conn, 1024, 2*time.Second)
+            if err == nil {
+                resultDef.Service = strings.TrimSpace(banner)
+            }
+        }
+        conn.Close()
+        result <- resultDef
+    }
+}
 func GrabberHelper(conn net.Conn, bufferSize int, timeout time.Duration) (string, error) {
 	if conn == nil {
 		return "",
 		fmt.Errorf("No connection Found")
 	}
-	err := conn.SetDeadline(time.Now().Add(timeout))
+	err := conn.SetReadDeadline(time.Now().Add(timeout))
 		if err != nil {
 		return "",err
 	}
@@ -177,7 +171,7 @@ func main() {
 		}
 	}
 		if *jsoutput {
-		output = append(output, prints)
+			jsSummary = append(jsSummary, prints)
 		}
 		}
 	}()
@@ -188,13 +182,28 @@ func main() {
 	Report := DISPLAY {
 		Targets: targetslist,
 		Port: len(targetslist) * (*end - *start +1),
-		Open:  len(openPorts),
+		Open:  len(Opens),
+		DurationT:  time.Since(startTime).String(),
 		Timeout: time.Duration(*timeout) * time.Second,
 		Workers: *workers,
 		Range: fmt.Sprintf("%d-%d", *start, *end),
 	}
 	if *jsoutput {
-		jsonData, _ := json.MarshalIndent(output, "", "  ")
-		fmt.Println(string(jsonData))
+	print := struct {
+	Results []Definitions `json:"results"`
+	Summary DISPLAY       `json:"summary"`
+	}
+	{
+	Results: jsSummary,
+	Summary: Report,
+	}
+	jsonData, err := json.MarshalIndent(print, "", "  ")
+	if err != nil {
+	fmt.Println("Error generating JSON output:", err)
+	return
+	}
+	fmt.Println(string(jsonData))
+	} else {
+	Printer(Report)
 	}
 }
