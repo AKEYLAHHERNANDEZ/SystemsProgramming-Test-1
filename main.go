@@ -90,14 +90,22 @@ func worker(wg *sync.WaitGroup, tasks chan string, result chan Definitions, dial
 	} 
 } 
 func GrabberHelper(conn net.Conn, bufferSize int, timeout time.Duration) (string, error) {
-			banner := make([]byte,bufferSize)
-			conn.SetReadDeadline(time.Now().Add(timeout))
-			Vari, err := conn.Read(banner)
-			if err != nil {
-				return "",err
-			}
-			return string(banner[:Vari]), nil
-			}
+	if conn == nil {
+		return "",
+		fmt.Errorf("No connection Found")
+	}
+	err := conn.SetDeadline(time.Now().Add(timeout))
+		if err != nil {
+		return "",err
+	}
+
+	banner := make([]byte,bufferSize)
+	Vari, err := conn.Read(banner)
+	if err != nil {
+	return "",err
+	}
+	return string(banner[:Vari]), nil
+	}
 
 
 			func main() {
