@@ -4,15 +4,14 @@
 package main
 
 import (
+"encoding/json"
+	"flag"
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
-	"encoding/json"
-	"flag"
-	"strings"
-	"net"
 )
 
 type Definitions struct {
@@ -23,12 +22,17 @@ type Definitions struct {
 	Protocol string `json:"protocol,omitempty"`
 }
 
-var (
-	timeout time.Duration
-	check bool
-	service string
-	protocol string
-)
+type DISPLAY struct{
+	Targets      []string      `json:"targets"`
+	TotalPorts   int           `json:"total_ports"`
+	Open   int           		`json:"open"`
+	DurationT    string        `json:"durationd"`
+	Timeout      time.Duration `json:"timeout"`
+	Workers      int           `json:"workers"`
+	Range    string        	   `json:"range,omitempty"`
+	Ports []int      		   `json:"ports,omitempty"`
+}
+
 
 func worker(wg *sync.WaitGroup, tasks chan string, result chan Definitions, dialer net.Dialer) {
 	defer wg.Done()
@@ -42,7 +46,7 @@ func worker(wg *sync.WaitGroup, tasks chan string, result chan Definitions, dial
 		if err != nil {
 			continue
 		}
-		conn, err := net.DialTimeout("tcp", addr, timeout)
+		conn, err := dialer.Dial("tcp", addr)
 		if err == nil {
 			result <- Definitions{
 				Host:  host,
@@ -83,63 +87,66 @@ func GrabberHelper(conn net.Conn, bufferSize int, timeout time.Duration) (string
 			}
 
 
-func main() {
-	targets := flag.String("Targets","")
-	start := flag.Int("Start-port", 1, "Port Number")
-	end := flag.Int("End-port", 512, "Port Number")
-	workers := flag.Int("Start-point", 5, "Port Number")
-	checkers := flag.Bool("Boolean check", false, "Banner grabbing")
-	timeout := flag.Int("timeout", 5, "Timeout ")
-	jsoutput := flag.Bool("json", false, "Enable JSoutput")
-	flag.Parse()
-	
-	if *targets == "" {
-	fmt.Println("No targets specified")
-	return
-	}
-
-	var wg sync.WaitGroup
-	tasks := make(chan string, 100)
-
-	dialer := net.Dialer {
-		Timeout: time.Duration(*timeout) *time.Second,
-	}
-	check = *checkers
-
-	results := make(chan Definitions, *workers) 
-	targetslist := strings.Split(*targets, ",")
-
-    for i := 0; i <= *workers; i++ {
-		wg.Add(1)
-		go worker(&wg, tasks, results, dialer)
-	}
-
-    go func(){
-		for _, val := range targetslist {
-			for port := *start; port <= *end; port++{
-				tasks <- net.JoinHostPort(val,strconv.Itoa(port))
-			}
-		}
-		close(tasks)
-	}()
-
-	go func(){
-		wg.Wait()
-		close(results)
-	}()
-var output []Definitions
-for prints := range results {
-		if prints.Check {
-			if check {
-				fmt.Printf("%s:%d - IS OPEN (%s)\n", prints.Host, prints.Port, prints.Service)
-			} else {
-				fmt.Printf("%s:%d - IS OPEN\n", prints.Host, prints.Port)
-			}
-		}
-	}
-}
-
-if *jsoutput{
-	jsonData,_:= json.MarshalIndent(output, "","")
-	fmt.Println(string(jsonData))
-}
+			func main() {
+				targets := flag.String("Targets","","host")
+				start := flag.Int("Start-port", 1, "Port Number")
+				end := flag.Int("End-port", 512, "Port Number")
+				workers := flag.Int("worker", 5, "amount of workers")
+				checkers := flag.Bool("Boolean check", false, "Banner grabbing")
+				timeout := flag.Int("timeout", 5, "Timeout ")
+				jsoutput := flag.Bool("json", false, "Enable jsoutput")
+				flag.Parse()
+				
+				if *targets == "" {
+				  fmt.Println("No target specified")
+				  return
+				}
+			  
+				var wg sync.WaitGroup
+				tasks := make(chan string, 100)
+				results := make(chan Definitions, *workers) 
+				targetslist := strings.Split(*targets, ",")
+			  
+				dialer := net.Dialer {
+				  Timeout: time.Duration(*timeout) * time.Second,
+				}
+			  
+				check = *checkers
+				for i := 0; i < *workers; i++ {
+				  wg.Add(1)
+				  go worker(&wg, tasks, results, dialer)
+				}
+			  
+				go func(){
+				  for _, val := range targetslist {
+				  for port := *start; port <= *end; port++ {
+				  tasks <- net.JoinHostPort(val, strconv.Itoa(port))
+				  }
+				  }
+				  close(tasks)
+				}()
+			  
+				var output []Definitions
+				go func() {
+				  for prints := range results {
+				   if prints.Check {
+				  if check {
+				  fmt.Printf("%s:%d - IS OPEN (%s)\n", prints.Host, prints.Port, prints.Service)
+				  } else {
+				  fmt.Printf("%s:%d - IS OPEN\n", prints.Host, prints.Port)
+				  }
+				   }
+				  if *jsoutput {
+				  output = append(output, prints)
+				   }
+				  }
+				}()
+			  
+				wg.Wait()
+				close(results)
+				
+				if *jsoutput {
+				  jsonData, _ := json.MarshalIndent(output, "", "  ")
+				  fmt.Println(string(jsonData))
+			   }
+			  }
