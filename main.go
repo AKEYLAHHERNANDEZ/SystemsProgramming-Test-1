@@ -1,3 +1,6 @@
+//Name:Akeylah Hernandez
+//Filename:main.go
+//Assignemnt: Test #1
 package main
 
 import (
@@ -6,21 +9,33 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"encoding/json"
+	"flag"
+	"strings"
+	"net"
 )
 
+type Definitions struct {
+	Host  string `json:"host"`
+	Port int	`json:"port"`
+	Check bool	`json:"check"`
+	Service string	`json:"service,omitempty"`
+	Protocol string `json:"protocol,omitempty"`
+}
 
-func worker(wg *sync.WaitGroup, tasks chan string, dialer net.Dialer) {
+func worker(wg *sync.WaitGroup, tasks chan string, result chan Definitions, dialer net.Dialer) {
 	defer wg.Done()
-	maxRetries := 3
     for addr := range tasks {
-		var success bool
-		for i := range maxRetries {      
-		conn, err := dialer.Dial("tcp", addr)
+		division := strings.Split(addr, ":")
+		host,Variable := division[0], division[1]
+		port,_ := strconv.Atoi(Variable)
+
+		conn, err := net.DialTimeout("tcp", addr,timeout)
 		if err == nil {
 			conn.Close()
+			
 			fmt.Printf("Connection to %s was successful\n", addr)
-			success = true
-			break
+			banner := make([]byte,102)
 		}
 		backoff := time.Duration(1<<i) * time.Second
 		fmt.Printf("Attempt %d to %s failed. Waiting %v...\n", i+1,  addr, backoff)
