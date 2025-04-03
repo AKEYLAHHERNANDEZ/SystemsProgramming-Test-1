@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"text/scanner"
 	"time"
 )
 
@@ -26,7 +25,7 @@ type DISPLAY struct{
 	Targets      []string      `json:"targets"`
 	TotalPorts   int           `json:"total_ports"`
 	Open   int           		`json:"open"`
-	DurationT  	 string        `json:"durationd"`
+	DurationT  	 string        `json:"durationt"`
 	Timeout      time.Duration `json:"timeout"`
 	Workers      int           `json:"workers"`
 	Range    string        	   `json:"range,omitempty"`
@@ -34,17 +33,17 @@ type DISPLAY struct{
 }
 
 func Printer(printit DISPLAY) {
-	fmt.Println("Targets: %v \n", printit.Targets)
+	fmt.Printf("Targets: %v \n", printit.Targets)
 	if len(printit.Ports) > 0 {
-		fmt.Println("Ports: %v \n", printit.Ports)
+		fmt.Printf("Ports: %v \n", printit.Ports)
 	}else {
-		fmt.Println("Range: %s \n", printit.Range)
+		fmt.Printf("Range: %s \n", printit.Range)
 	}
-	fmt.Println("Ports that were Scanned: %d\n", printit.TotalPorts)
-	fmt.Println("Ports that are open: %d\n", printit.Open)
-	fmt.Println("Worker count: %d\n", printit.Workers)
-	fmt.Println("Timeout period: %s\n", printit.Timeout)
-	fmt.Println("Duration: %s\n", printit.DurationT)	
+	fmt.Printf("Ports that were Scanned: %d\n", printit.TotalPorts)
+	fmt.Printf("Ports that are open: %d\n", printit.Open)
+	fmt.Printf("Worker count: %d\n", printit.Workers)
+	fmt.Printf("Timeout period: %s\n", printit.Timeout)
+	fmt.Printf("Duration: %s\n", printit.DurationT)	
 }
 
 func worker(wg *sync.WaitGroup, tasks chan string, result chan Definitions, dialer net.Dialer, check bool) {
@@ -119,12 +118,14 @@ func Progress(progress chan int, counter int){
 }
 }
 }
+
 func main() {
-	targets := flag.String("Targets","","host")
-	start := flag.Int("Start-port", 1, "Port Number")
-	end := flag.Int("End-port", 512, "Port Number")
+	startTime := time.Now()
+	targets := flag.String("targets","","host")
+	start := flag.Int("start-port", 1, "Port Number")
+	end := flag.Int("end-port", 512, "Port Number")
 	workers := flag.Int("worker", 5, "amount of workers")
-	checkers := flag.Bool("Boolean check", false, "Banner grabbing")
+	checkers := flag.Bool("booleancheck", false, "Banner grabbing")
 	timeout := flag.Int("timeout", 5, "Timeout ")
 	jsoutput := flag.Bool("json", false, "Enable jsoutput")
 	flag.Parse()
@@ -138,7 +139,10 @@ func main() {
 	tasks := make(chan string, 100)
 	results := make(chan Definitions, *workers*2) 
 	targetslist := strings.Split(*targets, ",")
-	
+	progress := make (chan int,100)
+	TotalPorts := len(targetslist) * (*end - *start + 1)
+	go Progress(progress,TotalPorts)
+
 	dialer := net.Dialer {
 		Timeout: time.Duration(*timeout) * time.Second,
 	}
@@ -152,9 +156,11 @@ func main() {
 		for _, val := range targetslist {
 		for port := *start; port <= *end; port++ {
 		tasks <- net.JoinHostPort(val, strconv.Itoa(port))
+		progress <- 1
 		}
 		}
 		close(tasks)
+		close(progress)
 	}()
 	
 	var Opens []Definitions
@@ -165,8 +171,7 @@ func main() {
 			Opens = append(Opens, prints)
 		if *checkers && prints.Service != "" {
 		fmt.Printf("%s:%d - IS OPEN (%s)\n", prints.Host, prints.Port, prints.Service)
-		}
-		else {
+		}else {
 		fmt.Printf("%s:%d - IS OPEN\n", prints.Host, prints.Port)
 		}
 	}
@@ -181,7 +186,7 @@ func main() {
 	
 	Report := DISPLAY {
 		Targets: targetslist,
-		Port: len(targetslist) * (*end - *start +1),
+		TotalPorts: TotalPorts,
 		Open:  len(Opens),
 		DurationT:  time.Since(startTime).String(),
 		Timeout: time.Duration(*timeout) * time.Second,
@@ -192,8 +197,7 @@ func main() {
 	print := struct {
 	Results []Definitions `json:"results"`
 	Summary DISPLAY       `json:"summary"`
-	}
-	{
+	}{
 	Results: jsSummary,
 	Summary: Report,
 	}

@@ -1,0 +1,39 @@
+.DEFAULT_GOAL := build
+
+BINARY_NAME = portscanner
+TARGETS = "scanme.nmap.org"
+PORTS = "22,80,443"
+
+.PHONY: fmt
+fmt:
+	@echo "Format the project..."
+	@go fmt ./...
+
+.PHONY: vet
+vet: fmt
+	@echo "Vetting the project..."
+	@go vet ./...
+
+.PHONY: build
+build: vet
+	@echo "Building the project..."
+	@go build -o ${BINARY_NAME}
+
+.PHONY: run
+run: build
+	@echo "Running scanner..."
+	@./${BINARY_NAME} -targets=${TARGETS} -ports=${PORTS}
+
+.PHONY: test-scan
+test-scan: build
+	@echo "Running test scan..."
+	@./${BINARY_NAME} -targets=localhost -start-port=1 -end-port=1024 -workers=50
+
+.PHONY: clean
+clean:
+	@echo "Cleaning up..."
+	@rm -f ${BINARY_NAME}
+	@rm -f scan_results.json
+
+.PHONY: all
+all: clean build run
