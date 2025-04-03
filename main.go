@@ -26,13 +26,26 @@ type DISPLAY struct{
 	Targets      []string      `json:"targets"`
 	TotalPorts   int           `json:"total_ports"`
 	Open   int           		`json:"open"`
-	DurationT    string        `json:"durationd"`
+	DurationT  	 string        `json:"durationd"`
 	Timeout      time.Duration `json:"timeout"`
 	Workers      int           `json:"workers"`
 	Range    string        	   `json:"range,omitempty"`
 	Ports []int      		   `json:"ports,omitempty"`
 }
 
+func Printer(printit DISPLAY) {
+	fmt.Println("Targets: %v \n", printit.Ports)
+	if len(printit.Ports) > 0 {
+		fmt.Println("Ports: %v \n", printit.Ports)
+	}else {
+		fmt.Println("Range: %s \n", printit.Range)
+	}
+	fmt.Println("Ports that were Scanned: %d\n", printit.TotalPorts)
+	fmt.Println("Ports that are open: %d\n", printit.Open)
+	fmt.Println("Worker count: %d\n", printit.Workers)
+	fmt.Println("Timeout period: %s\n", printit.Timeout)
+	fmt.Println("Duration: %s\n", printit.DurationT)	
+}
 
 func worker(wg *sync.WaitGroup, tasks chan string, result chan Definitions, dialer net.Dialer) {
 	defer wg.Done()
