@@ -1,5 +1,5 @@
 # Basic scan
-./output -targets localhost -ports 22,80 -booleancheck -worker 4
+./output -targets scanme.nmap.org -ports 22,80 -booleancheck -worker 4
 
 # JSON output
 ./output -targets scanme.nmap.org -ports 22,80 -json
