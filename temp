@@ -1,4 +1,0 @@
-result <- Definitions{
-				Host:  host,
-				Port:  port,
-				Check: true,
