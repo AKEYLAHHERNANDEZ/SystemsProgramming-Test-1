@@ -4,7 +4,7 @@ WORKERS ?= 5
 TIMEOUT ?= 5
 BINARY = portscanner
 
-.PHONY: run build clean test fmt help
+.PHONY: run build clean fmt help
 
 # Build the program
 build:
@@ -30,11 +30,6 @@ fmt:
 	@echo "Formatting."
 	@go fmt ./...
 
-# Run tests
-test:
-	@echo "Running A test."
-	@go test -v ./...
-
 # Clean up
 clean:
 	@echo "Cleaning up."
@@ -44,8 +39,7 @@ clean:
 help:
 	@echo "Makefile Commands:"
 	@echo "  make build    - Build the Go program"
-	@echo "  make run      - Run the compiled binary"
-	@echo "  make fmt      - Format Go source code"
-	@echo "  make test     - Run tests"
+	@echo "  make run      - Run the compiled Program"
+	@echo "  make fmt      - Format Go code"
 	@echo "  make clean    - Remove compiled binaries"
 	@echo "  make help     - Show available commands"

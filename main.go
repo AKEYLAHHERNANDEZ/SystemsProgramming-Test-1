@@ -91,7 +91,7 @@ func worker(wg *sync.WaitGroup, tasks chan string, result chan Definitions, dial
 func GrabberHelper(conn net.Conn, bufferSize int, timeout time.Duration) (string, error) {
 	if conn == nil {
 		return "",
-			fmt.Errorf("no connection found") //error message if ran but no connection is established
+		fmt.Errorf("no connection found") //error message if ran but no connection is established
 	}
 	err := conn.SetReadDeadline(time.Now().Add(timeout))
 	if err != nil {

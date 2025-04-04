@@ -1,9 +1,0 @@
-# Basic scan
-./output -targets scanme.nmap.org -ports 22,80 -booleancheck -worker 4
-
-# JSON output
-./output -targets scanme.nmap.org -ports 22,80 -json
-
-# Error cases:
-./output -ports 100
-./output -targets localhost -ports 8587848
