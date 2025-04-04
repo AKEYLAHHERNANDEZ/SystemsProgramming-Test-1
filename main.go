@@ -14,15 +14,15 @@ import (
 	"time"
 )
 
-//Struct that defines each member in the scanner 
+// Struct that defines each member in the scanner
 type Definitions struct {
-	Host    string `json:"host"`  //host of target
-	Port    int    `json:"port"`  //the port number
-	Check   bool   `json:"check"`	//check to see if the port is open or not
-	Service string `json:"service,omitempty"`	//banner grabbing result
+	Host    string `json:"host"`              //host of target
+	Port    int    `json:"port"`              //the port number
+	Check   bool   `json:"check"`             //check to see if the port is open or not
+	Service string `json:"service,omitempty"` //banner grabbing result
 }
 
-//Struct that Display the scanned result
+// Struct that Display the scanned result
 // Stores details about the scanning report
 type DISPLAY struct {
 	Targets    []string      `json:"targets"`
@@ -35,7 +35,7 @@ type DISPLAY struct {
 	Ports      []int         `json:"ports,omitempty"`
 }
 
-//Prints the scanner report and displays it 
+// Prints the scanner report and displays it
 func Printer(printit DISPLAY) {
 	fmt.Printf("Targets: %v \n", printit.Targets)
 	if len(printit.Ports) > 0 {
@@ -65,7 +65,7 @@ func worker(wg *sync.WaitGroup, tasks chan string, result chan Definitions, dial
 			continue
 		}
 
-		conn, err := dialer.Dial("tcp", addr)//conneting to the adress of the port
+		conn, err := dialer.Dial("tcp", addr) //conneting to the adress of the port
 		if err != nil {
 			continue
 		}
@@ -87,13 +87,13 @@ func worker(wg *sync.WaitGroup, tasks chan string, result chan Definitions, dial
 	}
 }
 
-//Helper function that extract banners from ports that are open 
+// Helper function that extract banners from ports that are open
 func GrabberHelper(conn net.Conn, bufferSize int, timeout time.Duration) (string, error) {
 	if conn == nil {
 		return "",
 			fmt.Errorf("no connection found") //error message if ran but no connection is established
 	}
-	err := conn.SetReadDeadline(time.Now().Add(timeout)) 
+	err := conn.SetReadDeadline(time.Now().Add(timeout))
 	if err != nil {
 		return "", err
 	}
@@ -106,7 +106,7 @@ func GrabberHelper(conn net.Conn, bufferSize int, timeout time.Duration) (string
 	return string(banner[:Vari]), nil
 }
 
-//Displays the progress of each port thats being scanned
+// Displays the progress of each port thats being scanned
 func Progress(progress chan int, counter int) {
 	first := time.Now()
 	track := time.Now()
@@ -128,7 +128,7 @@ func Progress(progress chan int, counter int) {
 	}
 }
 
-//Uses a slice to separate the ports 
+// Uses a slice to separate the ports
 func ParseS(Flag string) ([]int, error) {
 	if Flag == "" {
 		return nil, nil
@@ -145,7 +145,7 @@ func ParseS(Flag string) ([]int, error) {
 	return ports, nil
 }
 
-//Main function that handles the whole scanning process
+// Main function that handles the whole scanning process
 func main() {
 	//Parse command line flags declarations
 	startTime := time.Now()
@@ -158,7 +158,7 @@ func main() {
 	jsoutput := flag.Bool("json", false, "Enable jsoutput")
 	specport := flag.String("ports", "", "List of points")
 	flag.Parse()
-  
+
 	//Error message  if no target was specified
 	fmt.Printf("Targets: %q\n", *targets)
 	if *targets == "" {
@@ -188,7 +188,7 @@ func main() {
 	results := make(chan Definitions, *workers*2)
 	progress := make(chan int, 100)
 	go Progress(progress, TotalPorts)
-	
+
 	// Configure network dialer
 	dialer := net.Dialer{
 		Timeout: time.Duration(*timeout) * time.Second,
@@ -199,18 +199,18 @@ func main() {
 		go worker(&wg, tasks, results, dialer, *checkers)
 	}
 
-	go func() {//goes through the target host & list of ports, send task to worker and update the progress function
+	go func() { //goes through the target host & list of ports, send task to worker and update the progress function
 		for _, val := range targetslist {
 			for _, port := range scannercheck {
 				tasks <- net.JoinHostPort(val, strconv.Itoa(port))
 				progress <- 1
 			}
 		}
-		close(tasks) //close channel for task sent
-		close(progress)//close channel for progress
+		close(tasks)    //close channel for task sent
+		close(progress) //close channel for progress
 	}()
 	wg.Wait()
-	close(results)//close the channel
+	close(results) //close the channel
 
 	// Collect results from workers
 	var finals []Definitions
@@ -223,7 +223,7 @@ func main() {
 		//checks if the port is open
 		if result.Check {
 			Opens = append(Opens, result)
-			if *checkers && result.Service != "" {//display the detected service
+			if *checkers && result.Service != "" { //display the detected service
 
 				fmt.Printf("%s:%d - IS OPEN (%s)\n", result.Host, result.Port, result.Service)
 			} else {
@@ -268,6 +268,6 @@ func main() {
 		}
 		fmt.Println(string(jsonData))
 	} else {
-		Printer(Report)//print the scan report
+		Printer(Report) //print the scan report
 	}
 }
